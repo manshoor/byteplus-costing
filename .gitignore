@@ -1,0 +1,22 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+
+# Outputs. The journal is in ~/.seedance, outside this folder. The .seedance/
+# line only guards against SEEDANCE_HOME set to .seedance in this folder.
+outputs/
+*.mp4
+*.mov
+*.part
+.seedance/
+
+# Private files
+INTERVIEW_NOTES.md
+.DS_Store

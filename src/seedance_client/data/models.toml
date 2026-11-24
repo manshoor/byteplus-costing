@@ -1,0 +1,161 @@
+# Model limits and output pixel sizes, copied from the BytePlus docs.
+# See docs/API_NOTES.md, sections 4, 5 and 10.
+
+read_on = 2026-11-23
+source_urls = [
+    "https://docs.byteplus.com/en/docs/modelark/create-video-generation-task-api",
+    "https://docs.byteplus.com/en/docs/modelark/model-list",
+]
+frame_rate = 24
+
+# One table per model. offline_tier says if service_tier "flex" is allowed.
+[models."dreamina-seedance-2-5-260628"]
+series = "2.5"
+resolutions = ["480p", "720p", "1080p", "4k"]
+min_duration = 4
+max_duration = 30
+offline_tier = false
+
+[models."dreamina-seedance-2-5-flash-261115"]
+series = "2.5"
+resolutions = ["480p", "720p"]
+min_duration = 4
+max_duration = 30
+offline_tier = false
+
+[models."dreamina-seedance-2-0-260128"]
+series = "2.0"
+resolutions = ["480p", "720p", "1080p", "4k"]
+min_duration = 4
+max_duration = 15
+offline_tier = false
+
+[models."dreamina-seedance-2-0-fast-260128"]
+series = "2.0"
+resolutions = ["480p", "720p"]
+min_duration = 4
+max_duration = 15
+offline_tier = false
+
+[models."dreamina-seedance-2-0-mini-260615"]
+series = "2.0"
+resolutions = ["480p", "720p"]
+min_duration = 4
+max_duration = 15
+offline_tier = false
+
+[models."seedance-1-0-pro-250528"]
+series = "1.0"
+resolutions = ["480p", "720p", "1080p"]
+min_duration = 2
+max_duration = 12
+offline_tier = true
+
+[models."seedance-1-0-pro-fast-251015"]
+series = "1.0"
+resolutions = ["480p", "720p", "1080p"]
+min_duration = 2
+max_duration = 12
+offline_tier = true
+
+# Ratios allowed per series and mode.
+[ratios."2.5"]
+text = ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "adaptive"]
+image = ["adaptive"]
+
+[ratios."2.0"]
+text = ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "adaptive"]
+image = ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "adaptive"]
+
+[ratios."1.0"]
+text = ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"]
+image = ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "adaptive"]
+
+# Output size as [width, height], per series, resolution and ratio.
+[sizes."2.5"."480p"]
+"16:9" = [854, 480]
+"4:3" = [752, 560]
+"1:1" = [640, 640]
+"3:4" = [560, 752]
+"9:16" = [480, 854]
+"21:9" = [992, 432]
+
+[sizes."2.5"."720p"]
+"16:9" = [1280, 720]
+"4:3" = [1112, 834]
+"1:1" = [960, 960]
+"3:4" = [834, 1112]
+"9:16" = [720, 1280]
+"21:9" = [1470, 630]
+
+[sizes."2.5"."1080p"]
+"16:9" = [1920, 1080]
+"4:3" = [1664, 1248]
+"1:1" = [1440, 1440]
+"3:4" = [1248, 1664]
+"9:16" = [1080, 1920]
+"21:9" = [2206, 946]
+
+[sizes."2.5"."4k"]
+"16:9" = [3840, 2160]
+"4:3" = [3326, 2494]
+"1:1" = [2880, 2880]
+"3:4" = [2494, 3326]
+"9:16" = [2160, 3840]
+"21:9" = [4398, 1886]
+
+[sizes."2.0"."480p"]
+"16:9" = [864, 496]
+"4:3" = [752, 560]
+"1:1" = [640, 640]
+"3:4" = [560, 752]
+"9:16" = [496, 864]
+"21:9" = [992, 432]
+
+[sizes."2.0"."720p"]
+"16:9" = [1280, 720]
+"4:3" = [1112, 834]
+"1:1" = [960, 960]
+"3:4" = [834, 1112]
+"9:16" = [720, 1280]
+"21:9" = [1470, 630]
+
+[sizes."2.0"."1080p"]
+"16:9" = [1920, 1080]
+"4:3" = [1664, 1248]
+"1:1" = [1440, 1440]
+"3:4" = [1248, 1664]
+"9:16" = [1080, 1920]
+"21:9" = [2206, 946]
+
+[sizes."2.0"."4k"]
+"16:9" = [3840, 2160]
+"4:3" = [3326, 2494]
+"1:1" = [2880, 2880]
+"3:4" = [2494, 3326]
+"9:16" = [2160, 3840]
+"21:9" = [4398, 1886]
+
+[sizes."1.0"."480p"]
+"16:9" = [864, 480]
+"4:3" = [736, 544]
+"1:1" = [640, 640]
+"3:4" = [544, 736]
+"9:16" = [480, 864]
+"21:9" = [960, 416]
+
+[sizes."1.0"."720p"]
+"16:9" = [1248, 704]
+"4:3" = [1120, 832]
+"1:1" = [960, 960]
+"3:4" = [832, 1120]
+"9:16" = [704, 1248]
+"21:9" = [1504, 640]
+
+[sizes."1.0"."1080p"]
+"16:9" = [1920, 1088]
+"4:3" = [1664, 1248]
+"1:1" = [1440, 1440]
+"3:4" = [1248, 1664]
+"9:16" = [1088, 1920]
+"21:9" = [2176, 928]

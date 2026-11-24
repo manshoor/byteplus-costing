@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How the Seedance client works</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --page: #ffffff; --card: #ffffff; --tint: #f3f3f0; --text: #1b1f24; --soft: #5d656e;
+    --line: #dcdfe3; --accent: #0b5cad; --making: #4a8fd6; --running: #a15c00; --done: #1a7f43;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #15181c; --card: #1d2126; --tint: #24292f; --text: #e8ebee; --soft: #a5afba;
+      --line: #363d45; --accent: #79b4f2; --making: #4f8fca; --running: #f0a848; --done: #5cc98a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0 auto; max-width: 42.5rem; padding: 2rem 1rem 3rem;
+    background: var(--page); color: var(--text);
+    font: 400 1rem/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  h1 { font-size: 1.5rem; font-weight: 500; line-height: 1.25; margin: 0 0 .5rem; }
+  h2 { font-size: .875rem; font-weight: 400; color: var(--soft); margin: 0 0 .75rem; }
+  section { margin-top: 2.75rem; }
+  p { margin: 0 0 .6rem; }
+  a { color: var(--accent); overflow-wrap: anywhere; }
+  .soft { color: var(--soft); font-size: .8125rem; }
+  .hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  button, select, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* The selected card has a wider border and less padding, so nothing moves. */
+  .steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+  .steps button {
+    display: block; text-align: left; padding: .9rem .85rem; cursor: pointer;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px; outline-offset: 3px;
+  }
+  .steps button[aria-pressed="true"] { border: 2px solid var(--accent); padding: calc(.9rem - 1px) calc(.85rem - 1px); }
+  .steps svg { width: 20px; height: 20px; color: var(--soft); margin-bottom: .6rem; }
+  .steps [aria-pressed="true"] svg { color: var(--accent); }
+  .steps b { display: block; font-weight: 500; font-size: .9375rem; }
+  .steps small { display: block; color: var(--soft); font-size: .75rem; line-height: 1.4; }
+  #step-text { list-style: none; margin: 1rem 0 0; padding: 0; }
+  #step-text li { display: flex; gap: .75rem; padding: .6rem 0; border-top: 1px solid var(--line); font-size: .9375rem; }
+  #step-text svg { flex: none; width: 18px; height: 18px; margin-top: .2rem; color: var(--soft); }
+
+  .controls { display: flex; align-items: center; gap: .75rem; font-size: .9375rem; }
+  .controls label, .controls output { white-space: nowrap; }
+  .controls output { font-weight: 500; min-width: 2.9rem; text-align: right; }
+  input[type="range"] { flex: 1; min-width: 0; min-height: 2rem; accent-color: var(--accent); }
+  #play { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: .4rem .9rem; min-height: 2.5rem; cursor: pointer; }
+  #timeline { position: relative; height: 3.25rem; margin: 1.25rem 0 .5rem; }
+  #track, #bar { position: absolute; top: 1rem; height: 4px; border-radius: 2px; left: 0; }
+  #track { right: 0; background: var(--line); }
+  #bar { background: var(--making); }
+  .tick { position: absolute; z-index: 1; top: .4rem; width: 2px; height: calc(1.2rem + 4px); margin-left: -1px; background: var(--running); }
+  .tick.done { background: var(--done); }
+  .time { position: absolute; top: 2rem; transform: translateX(-50%); color: var(--soft); font-size: .75rem; white-space: nowrap; }
+  .time.first { transform: none; }
+  .time.last { transform: translateX(-100%); }
+  #cursor { position: absolute; top: 0; height: 2rem; border-left: 1px dashed var(--text); display: none; }
+  .legend { display: flex; flex-wrap: wrap; gap: .25rem 1.1rem; list-style: none; padding: 0; margin: 0; color: var(--soft); font-size: .75rem; }
+  .legend li { display: flex; align-items: center; gap: .4rem; }
+  .legend i { width: 2px; height: .85rem; }
+  .legend i.wide { width: .9rem; height: 4px; border-radius: 2px; }
+
+  .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin: 1.1rem 0 .6rem; }
+  .metrics div { background: var(--tint); border-radius: 8px; padding: .75rem .9rem; }
+  .metrics dt { color: var(--soft); font-size: 12px; }
+  .metrics dd { margin: 0; font-size: 20px; font-weight: 500; line-height: 1.35; overflow-wrap: anywhere; }
+  .selects { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: .75rem; margin-bottom: .75rem; }
+  .selects select { width: 100%; min-width: 0; padding: .4rem .5rem; min-height: 2.5rem; background: var(--card); border: 1px solid var(--line); border-radius: 8px; font-size: .9375rem; }
+  .check { display: flex; align-items: center; gap: .45rem; margin-left: .5rem; }
+  .check input { width: 1rem; height: 1rem; margin: 0; accent-color: var(--accent); }
+  .check:has(:disabled) { color: var(--soft); }
+  pre {
+    margin: .9rem 0 0; padding: .8rem .9rem; background: var(--tint); border-radius: 8px;
+    font: 400 .8125rem/1.7 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  footer { margin-top: 2.25rem; }
+  footer p { margin: 0 0 .25rem; }
+  @media (max-width: 34rem) {
+    .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .selects { grid-template-columns: 1fr 1fr; }
+    .selects > :first-child { grid-column: 1 / -1; }
+    .metrics { gap: .5rem; }
+    .metrics div { padding: .65rem .6rem; }
+    .metrics dd { font-size: 18px; }
+    .wrap { flex-wrap: wrap; }
+    .wrap .check { width: 100%; margin: 0; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>How the Seedance client works</h1>
+  <p>A small command-line tool that shows the cost of a generated video, sends one paid request, waits for it and saves it.</p>
+  <p class="soft">Independent sample, not affiliated with BytePlus. Nothing on this page contacts a server.</p>
+</header>
+<main>
+  <section aria-labelledby="flow-title">
+    <h2 id="flow-title">1. The flow: click a step</h2>
+    <div class="steps" id="steps" role="group" aria-labelledby="flow-title"></div>
+    <ul id="step-text" aria-live="polite"></ul>
+  </section>
+
+  <section aria-labelledby="wait-title">
+    <h2 id="wait-title"></h2>
+    <div class="controls">
+      <label for="seconds">Video takes</label>
+      <input type="range" id="seconds" min="5" max="120" value="12" step="1">
+      <output id="seconds-text" for="seconds"></output>
+      <button type="button" id="play">Play</button>
+    </div>
+    <div id="timeline" role="img" aria-labelledby="poll-times"><div id="track"></div><div id="bar"></div><div id="ticks"></div><div id="cursor"></div></div>
+    <p class="hidden" id="poll-times"></p>
+    <ul class="legend">
+      <li><i class="wide" style="background:var(--making)"></i>video being made</li>
+      <li><i style="background:var(--running)"></i>poll: still running</li>
+      <li><i style="background:var(--done)"></i>poll: succeeded</li>
+    </ul>
+    <dl class="metrics">
+      <div><dt>Polls sent</dt><dd id="poll-count"></dd></div>
+      <div><dt>We notice at</dt><dd id="notice"></dd></div>
+      <div><dt>Status now</dt><dd id="status" aria-live="polite"></dd></div>
+    </dl>
+    <p class="soft">The first poll is at 0 s. Status is what the tool saw at its last poll. The first fifth of the time is shown as queued, only as an illustration.</p>
+  </section>
+
+  <section aria-labelledby="cost-title">
+    <h2 id="cost-title"></h2>
+    <div class="selects">
+      <select id="model" aria-label="Model"></select>
+      <select id="resolution" aria-label="Resolution"></select>
+      <select id="ratio" aria-label="Ratio" aria-describedby="ratio-note"></select>
+    </div>
+    <div class="controls wrap">
+      <label for="duration">Duration</label>
+      <input type="range" id="duration" step="1">
+      <output id="duration-text" for="duration"></output>
+      <label class="check" id="offline-label"><input type="checkbox" id="offline">Offline tier</label>
+    </div>
+    <pre id="sum" aria-live="polite"></pre>
+    <dl class="metrics">
+      <div><dt>Frame size</dt><dd id="frame"></dd></div>
+      <div><dt>Tokens</dt><dd id="tokens"></dd></div>
+      <div><dt>Estimated cost</dt><dd id="cost"></dd></div>
+    </dl>
+    <p class="soft" id="ratio-note">The adaptive ratio is left out: the API picks its size, so there is no exact sum.</p>
+  </section>
+</main>
+<footer class="soft">
+  <p>Prices read on <span id="read-on"></span> from <a id="source"></a>. The bill uses the token count that the API returns.</p>
+  <p>Real run on 2026-11-24: 19,845 actual tokens against 19,440 estimated. The file has 49 frames, not 48.</p>
+</footer>
+
+<!-- Data from pricing.toml, models.toml and the client. tests/test_page.py checks it. -->
+<script type="application/json" id="data">
+{
+  "readOn": "2026-11-23",
+  "sourceUrl": "https://docs.byteplus.com/en/docs/modelark/model-pricing",
+  "frameRate": 24,
+  "pixelsPerToken": 1024,
+  "priceUnit": 1000000,
+  "poll": { "first": 5.0, "growth": 1.5, "max": 30.0, "limit": 900.0 },
+  "ratios": ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9"],
+  "models": {
+    "dreamina-seedance-2-5-260628": {
+      "series": "2.5",
+      "min": 4,
+      "max": 30,
+      "resolutions": ["480p", "720p", "1080p", "4k"],
+      "online": { "480p": "10.70", "720p": "10.70", "1080p": "11.7", "4k": "4.7" },
+      "offline": {}
+    },
+    "dreamina-seedance-2-5-flash-261115": {
+      "series": "2.5",
+      "min": 4,
+      "max": 30,
+      "resolutions": ["480p", "720p"],
+      "online": { "480p": "7.0", "720p": "7.0" },
+      "offline": {}
+    },
+    "dreamina-seedance-2-0-260128": {
+      "series": "2.0",
+      "min": 4,
+      "max": 15,
+      "resolutions": ["480p", "720p", "1080p", "4k"],
+      "online": { "480p": "7.0", "720p": "7.0", "1080p": "7.7", "4k": "4.0" },
+      "offline": {}
+    },
+    "dreamina-seedance-2-0-fast-260128": {
+      "series": "2.0",
+      "min": 4,
+      "max": 15,
+      "resolutions": ["480p", "720p"],
+      "online": { "480p": "5.6", "720p": "5.6" },
+      "offline": {}
+    },
+    "dreamina-seedance-2-0-mini-260615": {
+      "series": "2.0",
+      "min": 4,
+      "max": 15,
+      "resolutions": ["480p", "720p"],
+      "online": { "480p": "3.5", "720p": "3.5" },
+      "offline": {}
+    },
+    "seedance-1-0-pro-250528": {
+      "series": "1.0",
+      "min": 2,
+      "max": 12,
+      "resolutions": ["480p", "720p", "1080p"],
+      "online": { "480p": "2.5", "720p": "2.5", "1080p": "2.5" },
+      "offline": { "480p": "1.25", "720p": "1.25", "1080p": "1.25" }
+    },
+    "seedance-1-0-pro-fast-251015": {
+      "series": "1.0",
+      "min": 2,
+      "max": 12,
+      "resolutions": ["480p", "720p", "1080p"],
+      "online": { "480p": "1.0", "720p": "1.0", "1080p": "1.0" },
+      "offline": { "480p": "0.5", "720p": "0.5", "1080p": "0.5" }
+    }
+  },
+  "sizes": {
+    "2.5": {
+      "480p": { "16:9": [854, 480], "4:3": [752, 560], "1:1": [640, 640], "3:4": [560, 752], "9:16": [480, 854], "21:9": [992, 432] },
+      "720p": { "16:9": [1280, 720], "4:3": [1112, 834], "1:1": [960, 960], "3:4": [834, 1112], "9:16": [720, 1280], "21:9": [1470, 630] },
+      "1080p": { "16:9": [1920, 1080], "4:3": [1664, 1248], "1:1": [1440, 1440], "3:4": [1248, 1664], "9:16": [1080, 1920], "21:9": [2206, 946] },
+      "4k": { "16:9": [3840, 2160], "4:3": [3326, 2494], "1:1": [2880, 2880], "3:4": [2494, 3326], "9:16": [2160, 3840], "21:9": [4398, 1886] }
+    },
+    "2.0": {
+      "480p": { "16:9": [864, 496], "4:3": [752, 560], "1:1": [640, 640], "3:4": [560, 752], "9:16": [496, 864], "21:9": [992, 432] },
+      "720p": { "16:9": [1280, 720], "4:3": [1112, 834], "1:1": [960, 960], "3:4": [834, 1112], "9:16": [720, 1280], "21:9": [1470, 630] },
+      "1080p": { "16:9": [1920, 1080], "4:3": [1664, 1248], "1:1": [1440, 1440], "3:4": [1248, 1664], "9:16": [1080, 1920], "21:9": [2206, 946] },
+      "4k": { "16:9": [3840, 2160], "4:3": [3326, 2494], "1:1": [2880, 2880], "3:4": [2494, 3326], "9:16": [2160, 3840], "21:9": [4398, 1886] }
+    },
+    "1.0": {
+      "480p": { "16:9": [864, 480], "4:3": [736, 544], "1:1": [640, 640], "3:4": [544, 736], "9:16": [480, 864], "21:9": [960, 416] },
+      "720p": { "16:9": [1248, 704], "4:3": [1120, 832], "1:1": [960, 960], "3:4": [832, 1120], "9:16": [704, 1248], "21:9": [1504, 640] },
+      "1080p": { "16:9": [1920, 1088], "4:3": [1664, 1248], "1:1": [1440, 1440], "3:4": [1248, 1664], "9:16": [1088, 1920], "21:9": [2176, 928] }
+    }
+  }
+}
+</script>
+<script>
+"use strict";
+(function () {
+  const data = JSON.parse(document.getElementById("data").textContent);
+  const byId = (id) => document.getElementById(id);
+  const PLAY_MS = 6000;
+  const QUEUED_SHARE = 0.2;
+
+  // Rounds to one decimal and drops a zero after the point.
+  const short = (value) => value.toLocaleString("en-US", { maximumFractionDigits: 1 });
+
+  // --- The flow ---
+
+  const poll = data.poll;
+  const STEPS = {
+    estimate: {
+      icon: "calculator", subtitle: "No key, no network", facts: [
+        ["key", "Needs no key and no network."],
+        ["check", "Checks your choices against the dated model file."],
+        ["file", "Reads the price from the dated price file."],
+        ["calculator", "Shows each step of the sum."],
+        ["alert", "Says \"price unknown\" when the file has no price."]
+      ]
+    },
+    create: {
+      icon: "send", subtitle: "One paid request", facts: [
+        ["key", "Checks the request, then needs ARK_API_KEY."],
+        ["alert", "Stops if an earlier create has no known outcome."],
+        ["check", "Shows the estimate and asks for a yes (or takes --yes if the price is known)."],
+        ["send", "Writes \"submitting\" to the journal, then sends one POST that is never retried."],
+        ["file", "Saves the task ID at once."]
+      ]
+    },
+    wait: {
+      icon: "clock", subtitle: "Free status reads", facts: [
+        ["clock", "Asks for the task at once, then after " + short(poll.first) + " s. Each pause is " + short(poll.growth) + " times the last, up to " + short(poll.max) + " s."],
+        ["repeat", "Retries a read after a rate limit, a server error or a network error."],
+        ["alert", "Stops after " + short(poll.limit / 60) + " minutes. The task is not cancelled, and wait can resume it."],
+        ["check", "Reports a failed, expired or cancelled task."],
+        ["calculator", "Shows the actual tokens and the cost computed from the list price."]
+      ]
+    },
+    download: {
+      icon: "download", subtitle: "Link lasts 24 hours", facts: [
+        ["repeat", "Reads the task again to get the video link."],
+        ["key", "Sends no API key to the storage host."],
+        ["file", "Writes a .part file, then renames it when it is complete."],
+        ["check", "Does not replace a file unless you add --overwrite."],
+        ["alert", "Reports a refused link as expired or over its download limit. That is our assumption."]
+      ]
+    }
+  };
+
+  // Outline icons, drawn on a 24 by 24 grid.
+  const ICONS = {
+    calculator: "M6 3h12v18H6zM9 7h6M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01",
+    send: "M21 3 3 10l7 3 3 7zM21 3 10 13",
+    clock: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 2",
+    download: "M12 4v11M7 11l5 5 5-5M4 20h16",
+    key: "M8 11a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM11 12l9-9M16 7l3 3",
+    check: "M5 12l5 5 9-10",
+    file: "M6 3h8l4 4v14H6zM14 3v4h4",
+    alert: "M12 4 3 20h18zM12 10v4M12 17h.01",
+    repeat: "M20 11a8 8 0 0 0-14-4L4 9M4 4v5h5M4 13a8 8 0 0 0 14 4l2-2M20 20v-5h-5"
+  };
+
+  function drawIcon(name) {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    path.setAttribute("d", ICONS[name]);
+    svg.append(path);
+    return svg;
+  }
+
+  function makeElement(tag, text) {
+    const element = document.createElement(tag);
+    element.textContent = text;
+    return element;
+  }
+
+  function showStep(name) {
+    for (const button of byId("steps").children) {
+      button.setAttribute("aria-pressed", String(button.dataset.step === name));
+    }
+    byId("step-text").replaceChildren(...STEPS[name].facts.map(([icon, text]) => {
+      const item = document.createElement("li");
+      item.append(drawIcon(icon), makeElement("span", text));
+      return item;
+    }));
+  }
+
+  Object.entries(STEPS).forEach(([name, step], index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.step = name;
+    button.append(drawIcon(step.icon), makeElement("b", (index + 1) + ". " + name), makeElement("small", step.subtitle));
+    button.addEventListener("click", () => showStep(name));
+    byId("steps").append(button);
+  });
+  showStep("create");
+
+  // --- Waiting ---
+
+  const MAX_LABELLED_TICKS = 4;
+  let frameRequest = 0;
+
+  byId("wait-title").textContent = "2. Waiting: polls with growing delays (" + short(poll.first) +
+    " s, then ×" + short(poll.growth) + ", max " + short(poll.max) + " s)";
+
+  // The same rule as the client: poll, sleep, make the pause longer.
+  function pollTimes(readyAt) {
+    const times = [0];
+    let delay = poll.first;
+    while (times[times.length - 1] < readyAt) {
+      times.push(times[times.length - 1] + delay);
+      delay = Math.min(delay * poll.growth, poll.max);
+    }
+    return times;
+  }
+
+  function statusAt(time, readyAt) {
+    if (time >= readyAt) { return "succeeded"; }
+    return time < readyAt * QUEUED_SHARE ? "queued" : "running";
+  }
+
+  function drawTimeline() {
+    cancelAnimationFrame(frameRequest);
+    const readyAt = Number(byId("seconds").value);
+    const times = pollTimes(readyAt);
+    const end = times[times.length - 1];
+    const place = (time) => (time / end * 100) + "%";
+
+    byId("seconds-text").value = readyAt + " s";
+    byId("bar").style.width = place(readyAt);
+    byId("cursor").style.display = "none";
+    byId("ticks").replaceChildren(...times.flatMap((time, index) => {
+      const tick = document.createElement("div");
+      tick.className = time >= readyAt ? "tick done" : "tick";
+      tick.style.left = place(time);
+
+      // With many ticks, only the first and the last get a time.
+      const isLast = index === times.length - 1;
+      if (index > 0 && !isLast && times.length > MAX_LABELLED_TICKS) { return [tick]; }
+      const label = makeElement("span", short(time) + " s");
+      label.className = index === 0 ? "time first" : isLast ? "time last" : "time";
+      label.style.left = place(time);
+      return [tick, label];
+    }));
+    byId("poll-times").textContent = "Polls at " + times.map(short).join(", ") + " s.";
+    byId("poll-count").textContent = times.length;
+    byId("notice").textContent = short(end) + " s";
+    setStatus("ready");
+    return { readyAt, times, end, place };
+  }
+
+  // Changes the text only when needed, so a screen reader is not flooded.
+  function setStatus(text) {
+    if (byId("status").textContent !== text) { byId("status").textContent = text; }
+  }
+
+  function play() {
+    const { readyAt, times, end, place } = drawTimeline();
+    const started = performance.now();
+    byId("cursor").style.display = "block";
+
+    function step(now) {
+      const time = Math.min(1, Math.max(0, now - started) / PLAY_MS) * end;
+      const sent = times.filter((value) => value <= time);
+      byId("cursor").style.left = place(time);
+      byId("poll-count").textContent = sent.length;
+      setStatus(statusAt(sent[sent.length - 1], readyAt));
+      if (time < end) { frameRequest = requestAnimationFrame(step); }
+    }
+    step(started);
+  }
+
+  byId("seconds").addEventListener("input", drawTimeline);
+  byId("play").addEventListener("click", play);
+  drawTimeline();
+
+  // --- Cost ---
+
+  function fillSelect(id, values) {
+    const select = byId(id);
+    const before = select.value;
+    select.replaceChildren(...values.map((value) => new Option(value, value)));
+    if (values.includes(before)) { select.value = before; }
+  }
+
+  // Four decimals, ties to the even digit, in whole numbers: the same as the CLI.
+  function formatCost(pixels, price) {
+    const [whole, part = ""] = price.split(".");
+    const scaled = BigInt(whole + part.padEnd(4, "0"));
+    const top = BigInt(pixels) * scaled;
+    const bottom = BigInt(data.pixelsPerToken) * BigInt(data.priceUnit);
+    let units = top / bottom;
+    const twice = (top % bottom) * 2n;
+    if (twice > bottom || (twice === bottom && units % 2n === 1n)) { units += 1n; }
+    const digits = units.toString().padStart(5, "0");
+    return "$" + digits.slice(0, -4) + "." + digits.slice(-4);
+  }
+
+  function chooseModel() {
+    const model = data.models[byId("model").value];
+    fillSelect("resolution", model.resolutions);
+    const duration = byId("duration");
+    duration.min = model.min;
+    duration.max = model.max;
+    drawCost();
+  }
+
+  function drawCost() {
+    const model = data.models[byId("model").value];
+    const resolution = byId("resolution").value;
+    const ratio = byId("ratio").value;
+    const seconds = Number(byId("duration").value);
+    const [width, height] = data.sizes[model.series][resolution][ratio];
+
+    // The offline tier exists only where the price file has an offline price.
+    const offline = byId("offline");
+    offline.disabled = !(resolution in model.offline);
+    if (offline.disabled) { offline.checked = false; }
+    byId("offline-label").title = offline.disabled ? "Not available for this model" : "Half price, hours of delay";
+
+    const price = (offline.checked ? model.offline : model.online)[resolution];
+    const pixels = seconds * width * height * data.frameRate;
+    const tokens = pixels / data.pixelsPerToken;
+    const tokenText = tokens.toLocaleString("en-US", { maximumFractionDigits: 10 });
+    const cost = price === undefined ? "price unknown" : formatCost(pixels, price);
+
+    byId("duration-text").value = seconds + " s";
+    byId("sum").textContent =
+      "Tokens (" + ratio + "): " + seconds + " s × " + width + " × " + height + " × " + data.frameRate +
+      " fps ÷ " + data.pixelsPerToken + " = " + tokenText + " tokens\n" +
+      (price === undefined ? "Cost: price unknown" : "Cost: " + tokenText + " × $" + price + " ÷ " +
+      data.priceUnit.toLocaleString("en-US") + " = " + cost);
+    byId("frame").textContent = width + " × " + height;
+    byId("tokens").textContent = Math.round(tokens).toLocaleString("en-US");
+    byId("cost").textContent = cost;
+  }
+
+  byId("cost-title").textContent = "3. Cost: tokens = seconds × width × height × " +
+    data.frameRate + " ÷ " + data.pixelsPerToken;
+  fillSelect("model", Object.keys(data.models));
+  fillSelect("ratio", data.ratios);
+  byId("model").value = "seedance-1-0-pro-fast-251015";
+  byId("duration").value = 2;
+  byId("model").addEventListener("change", chooseModel);
+  for (const id of ["resolution", "ratio", "offline"]) { byId(id).addEventListener("change", drawCost); }
+  byId("duration").addEventListener("input", drawCost);
+  chooseModel();
+
+  byId("read-on").textContent = data.readOn;
+  byId("source").textContent = data.sourceUrl;
+  byId("source").href = data.sourceUrl;
+})();
+</script>
+</body>
+</html>
