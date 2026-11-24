@@ -5,13 +5,13 @@ BytePlus ModelArk.
 
 **This is an independent sample. It is not affiliated with BytePlus.**
 
-No setup needed to look: open [how it works](docs/how-it-works.html) in a browser.
+No setup needed to look: open [how it works](https://manshoor.github.io/byteplus-costing/how-it-works.html) in a browser.
 
 ## How it works
 
 ### Flow
 
-[![The flow section: four cards, estimate (no key, no network), create (one paid request), wait (free status reads) and download (link lasts 24 hours). Create is selected. It checks the request, needs ARK_API_KEY, stops if an earlier create has no known outcome, shows the estimate and asks for a yes, writes submitting to the journal, sends one POST that is never retried, and saves the task ID at once.](docs/img/flow.png)](docs/how-it-works.html)
+[![The flow section: four cards, estimate (no key, no network), create (one paid request), wait (free status reads) and download (link lasts 24 hours). Create is selected. It checks the request, needs ARK_API_KEY, stops if an earlier create has no known outcome, shows the estimate and asks for a yes, writes submitting to the journal, sends one POST that is never retried, and saves the task ID at once.](docs/img/flow.png)](https://manshoor.github.io/byteplus-costing/how-it-works.html)
 
 | Command | Costs money | What it does |
 |---------|-------------|--------------|
@@ -24,13 +24,13 @@ The full path, with the journal, is in the diagram under [First call](#first-cal
 
 ### Waiting
 
-[![The waiting section for a video that takes 12 seconds. Three polls at 0, 5 and 12.5 seconds. The first two see the task queued or running. The third sees succeeded, so the tool notices at 12.5 seconds. Status now: succeeded.](docs/img/waiting.png)](docs/how-it-works.html)
+[![The waiting section for a video that takes 12 seconds. Three polls at 0, 5 and 12.5 seconds. The first two see the task queued or running. The third sees succeeded, so the tool notices at 12.5 seconds. Status now: succeeded.](docs/img/waiting.png)](https://manshoor.github.io/byteplus-costing/how-it-works.html)
 
 The tool reads the task at once, then after 5 s. Each pause is 1.5 times the last, up to 30 s. More in [Design decisions](#design-decisions).
 
 ### Estimate
 
-[![The cost section for seedance-1-0-pro-fast-251015 at 480p, 16:9, 2 seconds, offline tier off. Frame size 864 × 480, 19,440 tokens, estimated cost $0.0194.](docs/img/cost.png)](docs/how-it-works.html)
+[![The cost section for seedance-1-0-pro-fast-251015 at 480p, 16:9, 2 seconds, offline tier off. Frame size 864 × 480, 19,440 tokens, estimated cost $0.0194.](docs/img/cost.png)](https://manshoor.github.io/byteplus-costing/how-it-works.html)
 
 ```
 Tokens (16:9): 2 s × 864 × 480 × 24 fps ÷ 1024 = 19,440 tokens
@@ -39,7 +39,7 @@ Cost: 19,440 × $1.0 ÷ 1,000,000 = $0.0194
 
 The formula and its limits are under [Cost](#cost).
 
-The pictures are static; open `docs/how-it-works.html` in a browser for the interactive version.
+The pictures are static; click one for the interactive version, or open `docs/how-it-works.html` from a clone in a browser.
 
 ## Overview
 
@@ -49,7 +49,7 @@ downloads it. For a plain-language version, read
 [TROUBLESHOOTING.md](TROUBLESHOOTING.md). The facts behind the code, with
 sources and dates, are in [docs/API_NOTES.md](docs/API_NOTES.md). An interactive
 page explains the flow, the waiting and the cost:
-[docs/how-it-works.html](docs/how-it-works.html).
+[the live page](https://manshoor.github.io/byteplus-costing/how-it-works.html).
 
 ## Setup
 
